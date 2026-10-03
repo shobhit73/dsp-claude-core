@@ -1,0 +1,21 @@
+# Per-implementer config & secrets — NEVER commit
+config/paths.local.json
+**/_secrets/
+*-creds.json
+*-jwt.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Caches / local outputs
+**/names_cache.json
+onboarding-logs/
+
+# Client data belongs in the client's own folder, not in this repo
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+~$*
