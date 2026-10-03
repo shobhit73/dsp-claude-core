@@ -14,7 +14,8 @@ Follow once per machine. ~15 minutes.
 ## 2. Clone both repos (keep them as siblings)
 ```
 git clone git@github.com:shobhit73/dsp-claude-core.git
-git clone <Unified Audit Tool repo SSH url>      # the Streamlit tools (apps/, utils/)
+git clone git@github.com:shobhit73/dsp-session-logs.git   # where your session logs are pushed
+git clone <Unified Audit Tool repo SSH url>               # the Streamlit tools (apps/, utils/)
 ```
 For the census workflow you also need a local checkout of the Uzio onboarding-service source.
 
@@ -25,6 +26,7 @@ cp config/paths.example.json config/paths.local.json
 ```
 - `UNIFIED_REPO_PATH` — your Unified Audit Tool checkout (where `apps/adp/...` lives).
 - `DSP_SECRETS_DIR` — a PRIVATE folder for your prod creds (NOT inside any git repo).
+- `SESSION_LOGS_REPO` — your local `dsp-session-logs` checkout (the SessionEnd hook pushes logs here).
 - `UZIO_ONBOARDING_SRC` — (census only) your onboarding-service source checkout.
 `config/paths.local.json` is gitignored — it never leaves your machine.
 
