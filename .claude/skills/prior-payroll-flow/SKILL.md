@@ -21,9 +21,13 @@ intelligence ONLY at the dynamic decisions the tools cannot make.**
 
 ## How the tools run - NO MCP
 Run every tool as its **Python backend, headless, exactly as it runs today** - import the module and
-call its function with files as `BytesIO` (`run_setup_helper` / `build_setup_xlsx`, `run_audit`, the
-sanity backend). **Do NOT use the audit-tool-server MCP wrappers** - MCP drops the Streamlit input-
-gathering and silently assumes things (bad past experience). Each stage must KNOW and GATHER that
+call its function with files as `BytesIO` (`run_setup_helper` / `build_setup_xlsx`, `run_audit`).
+**Do NOT use the audit-tool-server MCP wrappers** - MCP drops the Streamlit input-gathering and
+silently assumes things (bad past experience).
+**EXCEPTION - the Sanity tool is Streamlit-UI-ONLY** (no headless backend; the `audit_fast_api` core is
+incomplete). Running it headless STALLS. The **human** runs it via `streamlit run
+apps/adp/prior_payroll_sanity.py` and gives you the `*_cleaned.csv`; you only VERIFY it. Only the Setup
+Helper and the audit tools have real headless backends. Each stage must KNOW and GATHER that
 tool's inputs (ask the user, never assume a file is present):
 - **Sanity**: ADP Prior Payroll file (+ optional Tax Validation Report). Decisions: aggregation
   strategy (full_quarter / preserve_pay_periods), NET<->TAKE-HOME swap.

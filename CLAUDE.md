@@ -19,6 +19,9 @@ every implementer can clone it and get the same workflows.
 2. **NO MCP.** Run every tool as its **Python backend, headless** (pass files as `BytesIO` with a
    `.name`), exactly as it runs on Streamlit today. MCP wrappers drop the Streamlit input-gathering and
    silently assume things — bad past experience. Infer the tool's output; don't call an MCP tool.
+   **Exception: the prior-payroll Sanity tool is Streamlit-UI-only** — no headless entry (it stalls),
+   and the `audit_fast_api` core is incomplete. The human runs it via `streamlit run` and provides the
+   `*_cleaned.csv`; agents only verify it. (Setup Helper + audit tools DO have headless backends.)
 3. **Gather inputs, never assume.** Each tool's required files are listed in its skill. Ask the user
    for them (a **folder** link). Tell the user to keep the client's files in ONE folder (Drive or
    local), not free-floating, so every stage can reference them.

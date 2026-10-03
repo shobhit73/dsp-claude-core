@@ -9,12 +9,18 @@ and sanity-check the output; do NOT re-do its date-fix / take-home-vs-net-pay / 
 work or reason over it.** You do NOT log into ADP/Paycom and you do NOT run the load API - the human
 does those. Your value is the VERIFY and DIAGNOSE, which the tool can't do.
 
-## 1. Run the Sanity tool - then just check (no token waste)
-Run the **Prior Payroll Sanity** tool (`apps/adp/prior_payroll_sanity.py`) on each vendor file ->
-`*_cleaned.csv` (it evaluates `=ROUND`, standardizes dates, swaps NET/TAKE-HOME, aggregates per
-associate). Your only check: the clean file exists, row/associate counts look right, money columns are
-plain numbers now. These cleaned CSVs are what gets loaded AND what the audit later consumes (never
-the raw xlsx - see [[prior-payroll-audit-roundformula-gotcha]]).
+## 1. Sanitize - the Sanity tool is Streamlit-UI-ONLY; do NOT run it headless
+**`apps/adp/prior_payroll_sanity.py` has NO headless entry** - its pipeline is interleaved with
+Streamlit widgets, so importing/running it headless launches a blocking server and **STALLS** (seen:
+600s watchdog kill, Oct 2026). Do NOT try. Also do NOT use `audit_fast_api/core`'s
+`run_adp_prior_payroll_sanity` - it runs headless but is **INCOMPLETE** (skips the `MEMO :` split
+columns and the `PERIOD BEGINNING/ENDING/PAY DATE` columns), so load/audit won't match.
+Instead: ask the **human** to run the UI - `python -m streamlit run apps/adp/prior_payroll_sanity.py`
+from the Unified repo root -> upload each quarter + the Tax Validation Report -> pick **Full Quarter
+(Default)** -> download each `*_cleaned.csv` into the client folder. Then YOUR job: **verify** each
+`*_cleaned.csv` (money columns plain numbers, dates MM/DD/YYYY, and the full column set incl. the
+`PERIOD *` + `MEMO :` columns - diff against a prior known-good cleaned file if unsure). These cleaned
+CSVs feed load AND audit (never the raw xlsx - see [[prior-payroll-audit-roundformula-gotcha]]).
 
 ## 2. Verify each load from prod - Postman is STALE
 The human runs the onboarding API (Postman "Prior Payroll") per quarter + the latest partial period.
