@@ -11,7 +11,8 @@ __pycache__/
 
 # Caches / local outputs
 **/names_cache.json
-onboarding-logs/
+# (the onboarding-logs OUTPUT dir lives OUTSIDE this repo via DSP_LOGS_OUT — nothing to ignore here;
+#  do NOT add a bare `onboarding-logs/` rule, it would hide the .claude/skills/onboarding-logs skill)
 
 # Client data belongs in the client's own folder, not in this repo
 *.xlsx
