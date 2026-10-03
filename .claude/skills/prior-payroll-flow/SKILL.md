@@ -21,7 +21,11 @@ intelligence ONLY at the dynamic decisions the tools cannot make.**
 
 ## How the tools run - NO MCP
 Run every tool as its **Python backend, headless, exactly as it runs today** - import the module and
-call its function with files as `BytesIO` (`run_setup_helper` / `build_setup_xlsx`, `run_audit`).
+call its function with files as `BytesIO`. The backends (verified ADP + Paycom): **`run_comparison`**
+(prior-payroll audit), **`run_audit`** (deduction audit), **`run_setup_helper` / `build_setup_xlsx`**
+(ADP setup) / **`build_3tab_setup_xlsx`** (Paycom setup), **`generate_uzio_template` /
+`generate_corrected_census_xlsx`** (census). **Never call a `render_*` function** - that launches
+Streamlit and stalls.
 **Do NOT use the audit-tool-server MCP wrappers** - MCP drops the Streamlit input-gathering and
 silently assumes things (bad past experience).
 **EXCEPTION - the Sanity tool is Streamlit-UI-ONLY** (no headless backend; the `audit_fast_api` core is

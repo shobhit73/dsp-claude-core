@@ -18,8 +18,10 @@ MCP wrapper** - the MCP path drops the Streamlit input-gathering and silently as
 has burned us before. If an input file is missing, ask the orchestrator for it; never assume.
 
 ## The two audits
-- **Prior payroll** - `apps/adp/total_comparison.py` (headless backend; not MCP). Vendor side =
-  the Uzio **Prior Payroll Register Report**. Vendor source = the sanitized `*_cleaned.csv` files.
+- **Prior payroll** - call **`run_comparison(adp_files, uzio_file, mappings)`** from
+  `apps/adp/total_comparison.py` (Paycom: `apps/paycom/total_comparison.py`, same `run_comparison`) -
+  headless, NOT MCP, and NOT the `render_*` function (that would launch Streamlit and stall). Vendor
+  side = the Uzio **Prior Payroll Register Report**. Vendor source = the sanitized `*_cleaned.csv` files.
   **NEVER feed the raw `*_PriorPayroll_*.xlsx`** - its money cells are `=ROUND(x,2.0)` formulas that
   read as 0, so every ADP total comes out 0 and EVERYTHING shows "Mismatch". If you see all ADP
   totals = 0, you used the wrong files - re-run with the cleaned CSVs. Needs all 4 mapping files
