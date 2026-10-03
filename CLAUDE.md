@@ -31,6 +31,14 @@ every implementer can clone it and get the same workflows.
    decides the entry stage (~80-90% start at stage 1, but a client may arrive only for an audit, the
    readiness mail, or "check my onboarding logs").
 
+## Self-learning log (automatic — do not skip)
+Every session is logged for the learning loop. A **`SessionEnd` hook** (`.claude/hooks/log_session.py`)
+writes this session's **telemetry** (tool calls + durations, subagent runs, errors, duration, the
+human-prompt flow — **never raw outputs / PII / tokens**) to a Markdown file and pushes it to the
+**dsp-session-logs** repo (`SESSION_LOGS_REPO` in `config/paths.local.json`). It fires on its own —
+the implementer does nothing. Capture an in-the-moment learning anytime with **`/gotcha`**. (Phase 2:
+a periodic pass mines these logs to improve the skills + memory.)
+
 ## Prod access (read-only)
 - NeuronOps (schema `cp_phix_prod1`): `.claude/skills/prior-payroll-flow/nq.py` (+ `mint.py` to
   re-mint the JWT).

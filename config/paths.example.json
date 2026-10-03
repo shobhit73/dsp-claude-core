@@ -2,5 +2,6 @@
   "_comment": "Copy this file to paths.local.json and fill in YOUR machine's paths. paths.local.json is gitignored.",
   "UNIFIED_REPO_PATH": "C:/Users/<you>/path/to/Unified_Audit_Tool",
   "DSP_SECRETS_DIR": "C:/Users/<you>/path/to/private/_secrets",
+  "SESSION_LOGS_REPO": "C:/Users/<you>/path/to/dsp-session-logs",
   "UZIO_ONBOARDING_SRC": "C:/Users/<you>/path/to/Uzio Code/onboarding/onboarding-service"
 }
