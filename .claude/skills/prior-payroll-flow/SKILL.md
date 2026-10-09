@@ -24,7 +24,8 @@ Run every tool as its **Python backend, headless, exactly as it runs today** - i
 call its function with files as `BytesIO`. The backends (verified ADP + Paycom): **`run_comparison`**
 (prior-payroll audit), **`run_audit`** (deduction audit), **`run_setup_helper` / `build_setup_xlsx`**
 (ADP setup) / **`build_3tab_setup_xlsx`** (Paycom setup), **`generate_uzio_template` /
-`generate_corrected_census_xlsx`** (census). **Never call a `render_*` function** - that launches
+`generate_corrected_census_xlsx`** (census), **`run_sanity`** (deduction sanity - the Voluntary
+Deduction cleaner, ADP + Paycom). **Never call a `render_*` function** - that launches
 Streamlit and stalls.
 **Do NOT use the audit-tool-server MCP wrappers** - MCP drops the Streamlit input-gathering and
 silently assumes things (bad past experience).
@@ -39,6 +40,11 @@ tool's inputs (ask the user, never assume a file is present):
   historical/wide file for bonus). Client name. Decisions: earning type, bonus include-in-OT, tax
   state/code. (Tax master is internal - not uploaded.)
 - **Prior Payroll Audit**: the **cleaned CSVs** + Uzio Prior Payroll Register + the **4** mapping files.
+- **Deduction Sanity** (NEW, Stage 4 cleaner): ONE vendor Voluntary Deduction export. Removes rows only
+  (never edits a value): direct-deposit, garnishments, **EWA (TapCheck/Payactiv/ZayZoon)**, reimbursements,
+  Report-Totals/blank-ID - all default-ticked; FLAGS API-breakers. Output: no-BOM CSV = the EE-deductions
+  load file. Decision: tick/un-tick descriptions (defaults usually right; tick PHN cell-phone-reimb / ADV
+  pay-advance manually if present).
 - **Deduction Audit**: Uzio deduction file + ADP deduction file + mapping.
 Needs Python + `streamlit pandas openpyxl xlsxwriter pyyaml` installed locally (see SETUP).
 
@@ -73,11 +79,17 @@ so every stage can reference them.
 3. **Prior payroll audit** -> spawn **`payroll-audit-analyst`** (PriorPayroll). It runs the audit on
    the CLEANED CSVs, separates real vs expected mismatches, prepares the standard-named report.
    **GATE:** human reviews mismatches; you file to Drive only after approval.
-4. **EE deductions load + verify** -> clean the deduction report (drop direct-deposit / court-ordered /
-   reimbursements / blanks; no-BOM CSV), human runs the EmployeeDeductions API, then spawn
+4. **EE deductions load + verify** -> run the **Deduction Sanity tool** (`apps/{adp,paycom}/deduction_sanity.py`,
+   headless `run_sanity()`) on the vendor Voluntary Deduction export: it default-drops direct-deposit /
+   garnishments / EWA (TapCheck/Payactiv/ZayZoon) / reimbursements / totals and FLAGS API-breakers -> no-BOM
+   CSV (the load file). **TapCheck rule: KEEP `IPY->Earned Wage Access` in the MAPPING, but EXCLUDE TapCheck
+   from this LOAD** - TapCheck runs EWA client-side, so it must not be assigned on Uzio profiles; the sanity
+   tool drops it by default and never touches the mapping. Review the removed rows + flags with the human
+   (tick PHN/ADV manually if present). **GATE:** human runs the EmployeeDeductions API, then spawn
    **`prior-payroll-runner`** again (same verify logic) + spot-check one employee (cents/100).
-5. **Deduction audit** -> spawn **`payroll-audit-analyst`** (Deduction). EWA "missing in ADP" is
-   expected. **GATE:** human approves the filing.
+5. **Deduction audit** -> spawn **`payroll-audit-analyst`** (Deduction). TapCheck/EWA is an EXPECTED
+   difference (intentionally EXCLUDED from the Uzio load but present in the ADP source) - don't flag it as a
+   real mismatch. **GATE:** human approves the filing.
 6. **Readiness email** -> spawn **`readiness-coordinator`**. It confirms the implementer from the
    tracker, checks stages are green, returns the house-style draft. **GATE:** you create the Gmail
    DRAFT from its text; the human sends - never auto-send.
@@ -88,7 +100,7 @@ creating/sending any email, any Uzio change. Subagents only read, run tools, rea
 they return a verdict; you relay it and wait for the go-ahead.
 
 ## Shared tooling (stable paths - work in a fresh chat)
-- **Tools**: repo `apps/adp/` (sanity, setup helper, total_comparison, deduction_audit); Paycom under
+- **Tools**: repo `apps/adp/` (sanity, deduction_sanity, setup helper, total_comparison, deduction_audit); Paycom under
   `apps/paycom/`. Run headless (see [[adp-setup-helper-headless-format]]).
 - **Prod queries**: onboarding -> the onboarding-logs skill `oblogs.py`
   (`C:\Users\shobhit.sharma\.claude\skills\onboarding-logs\oblogs.py`). NeuronOps -> `nq.py` + `mint.py`
@@ -108,4 +120,7 @@ tools headless and return a verdict; the gates live here in the orchestrator.
 
 ## BTK Rush reference (2026-10-02)
 Clean pass: 826/826 prior payroll, audit penny-perfect, 626/626 EE deductions, deduction audit 0
-mismatch (114 EWA = TapCheck, expected). Implementer was Mercedes (tracker, not assumed).
+mismatch (114 EWA = TapCheck). Implementer was Mercedes (tracker, not assumed).
+**Correction (2026-10-07):** those TapCheck rows should NOT have been loaded - TapCheck is client-side EWA and
+the client escalated ("Super Urgent | EWA"). Going forward Stage 4's Deduction Sanity default-drops TapCheck
+from the LOAD while the mapping keeps `IPY->Earned Wage Access`. See the `ewa-tapcheck-map-not-load` rule.
