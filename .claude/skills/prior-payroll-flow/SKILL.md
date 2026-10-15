@@ -34,8 +34,10 @@ incomplete). Running it headless STALLS. The **human** runs it via `streamlit ru
 apps/adp/prior_payroll_sanity.py` and gives you the `*_cleaned.csv`; you only VERIFY it. Only the Setup
 Helper and the audit tools have real headless backends. Each stage must KNOW and GATHER that
 tool's inputs (ask the user, never assume a file is present):
-- **Sanity**: ADP Prior Payroll file (+ optional Tax Validation Report). Decisions: aggregation
-  strategy (full_quarter / preserve_pay_periods), NET<->TAKE-HOME swap.
+- **Sanity**: ADP Prior Payroll file (+ optional Tax Validation Report). FIRST verify the file's
+  `Report Runtime Settings -> Date Range` matches the FILENAME's payroll quarter (Stage-1 pre-check below) -
+  the filename is NOT proof of content. Decisions: aggregation strategy (full_quarter /
+  preserve_pay_periods), NET<->TAKE-HOME swap.
 - **Setup Helper**: sanitized prior-payroll file(s) (+ optional Voluntary Deduction export; +
   historical/wide file for bonus). Client name. Decisions: earning type, bonus include-in-OT, tax
   state/code. (Tax master is internal - not uploaded.)
@@ -67,10 +69,17 @@ readiness mail, or only "check my onboarding logs" - start wherever the files sa
 so every stage can reference them.
 
 ## The flow - spawn one subagent per stage, gate between stages
-1. **Prior payroll load + verify** -> spawn **`prior-payroll-runner`**. It runs the Sanity tool,
-   checks the clean file, then (after the human runs each quarter's API) verifies from prod and
-   diagnoses failures. **GATE:** the human runs the API; you present the verification; don't advance
-   on a failure.
+1. **Prior payroll load + verify** -> **FIRST, a MANDATORY pre-sanity file-integrity check:** for EACH raw
+   ADP file confirm its `Report Runtime Settings` sheet -> `Date Range` (From/To) matches the payroll
+   quarter its FILENAME claims, AND the format is consistent across quarters (detailed per-period, NOT
+   `Display Totals Only`). The filename is NOT proof of content - ADP downloads have shipped the WRONG date
+   range (see [[adp-download-daterange-mismatch]]: a "Mar22-Jun20" file that was actually Sep15-Oct15, and
+   calendar-quarter ranges that drop the first ~10 days of each payroll quarter). If any Date Range != its
+   filename quarter, or data is clearly another quarter / aggregated-totals-only, STOP and have the human
+   RE-download that quarter with the correct payroll-quarter range before anything else. Only then spawn
+   **`prior-payroll-runner`**: it runs the Sanity tool, checks the clean file, then (after the human runs each
+   quarter's API) verifies from prod and diagnoses failures. **GATE:** the human runs the API; you present the
+   verification; don't advance on a failure.
 2. **Setup + mappings** -> spawn **`dsp-setup-advisor`**. It runs the Setup Helper, then decides the
    dynamic calls (bonus disc/non-disc via OT in the file, hourly/flat via hours in the file, auto-sync
    via the tracker) and surfaces each. **GATE:** human confirms the decisions before the Uzio setup is
