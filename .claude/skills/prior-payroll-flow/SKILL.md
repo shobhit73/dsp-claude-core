@@ -34,10 +34,11 @@ incomplete). Running it headless STALLS. The **human** runs it via `streamlit ru
 apps/adp/prior_payroll_sanity.py` and gives you the `*_cleaned.csv`; you only VERIFY it. Only the Setup
 Helper and the audit tools have real headless backends. Each stage must KNOW and GATHER that
 tool's inputs (ask the user, never assume a file is present):
-- **Sanity**: ADP Prior Payroll file (+ optional Tax Validation Report). FIRST verify the file's
-  `Report Runtime Settings -> Date Range` matches the FILENAME's payroll quarter (Stage-1 pre-check below) -
-  the filename is NOT proof of content. Decisions: aggregation strategy (full_quarter /
-  preserve_pay_periods), NET<->TAKE-HOME swap.
+- **Sanity**: ADP Prior Payroll file (+ optional Tax Validation Report). FIRST run the Stage-1 pre-check:
+  the `Report Runtime Settings -> Date Range` (a PAY-DATE filter = the calendar quarter) must be the intended
+  quarter and no PAY DATE may fall outside it - a Dec period paid in Jan is correctly Q1, so do NOT compare to
+  the filename's PERIOD dates. Decisions: aggregation strategy (full_quarter / preserve_pay_periods),
+  NET<->TAKE-HOME swap.
 - **Setup Helper**: sanitized prior-payroll file(s) (+ optional Voluntary Deduction export; +
   historical/wide file for bonus). Client name. Decisions: earning type, bonus include-in-OT, tax
   state/code. (Tax master is internal - not uploaded.)
@@ -69,14 +70,15 @@ readiness mail, or only "check my onboarding logs" - start wherever the files sa
 so every stage can reference them.
 
 ## The flow - spawn one subagent per stage, gate between stages
-1. **Prior payroll load + verify** -> **FIRST, a MANDATORY pre-sanity file-integrity check:** for EACH raw
-   ADP file confirm its `Report Runtime Settings` sheet -> `Date Range` (From/To) matches the payroll
-   quarter its FILENAME claims, AND the format is consistent across quarters (detailed per-period, NOT
-   `Display Totals Only`). The filename is NOT proof of content - ADP downloads have shipped the WRONG date
-   range (see [[adp-download-daterange-mismatch]]: a "Mar22-Jun20" file that was actually Sep15-Oct15, and
-   calendar-quarter ranges that drop the first ~10 days of each payroll quarter). If any Date Range != its
-   filename quarter, or data is clearly another quarter / aggregated-totals-only, STOP and have the human
-   RE-download that quarter with the correct payroll-quarter range before anything else. Only then spawn
+1. **Prior payroll load + verify** -> **FIRST, a MANDATORY pre-sanity file-integrity check** (a prior-payroll
+   quarter is defined by PAY DATE): for EACH raw ADP file, the `Report Runtime Settings` -> `Date Range` is a
+   **PAY-DATE filter** = the calendar quarter (Q1 Jan1-Mar31, Q2 Apr1-Jun30, Q3 Jul1-Sep30); confirm it is the
+   INTENDED quarter, and - for detailed files - that every PAY DATE falls inside it. A file is WRONG only if its
+   pay dates / Date Range fall OUTSIDE the quarter (e.g. a config-fail that left ADP's "Last 30 Days" default -
+   that is what happened to Your Express Q2: Sep15-Oct15). Do NOT compare the Date Range to the filename's PERIOD
+   dates - they legitimately differ (a Dec period paid Jan 2 correctly belongs to Q1; closed quarters are Totals
+   Only with no period columns, so the period is read from the filename). See [[adp-download-daterange-mismatch]].
+   If a file's pay dates fall outside its quarter, STOP and have the human RE-download it. Only then spawn
    **`prior-payroll-runner`**: it runs the Sanity tool, checks the clean file, then (after the human runs each
    quarter's API) verifies from prod and diagnoses failures. **GATE:** the human runs the API; you present the
    verification; don't advance on a failure.
